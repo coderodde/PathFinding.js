@@ -79,6 +79,10 @@ function depthLimitedSearch(state,
         const neighbors = grid.getNeighbors(node, diagonalMovement);
         
         for (const neighbor of neigbours) {
+            if (state[0]) {
+                return;
+            }
+          
             const neighborKey = "[x = " + node.x + ", y = " + node.y + "]";
             
             if (visitedSet[neighborKey]) {
