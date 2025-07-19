@@ -1,4 +1,3 @@
-var Heap       = require('heap');
 var Util       = require('../core/Util');
 var DiagonalMovement = require('../core/DiagonalMovement');
 
@@ -21,8 +20,6 @@ function IDDFSFinder(opt) {
     opt = opt || {};
     this.allowDiagonal = opt.allowDiagonal;
     this.dontCrossCorners = opt.dontCrossCorners;
-    this.heuristic = opt.heuristic || Heuristic.manhattan;
-    this.weight = opt.weight || 1;
     this.diagonalMovement = opt.diagonalMovement;
 
     if (!this.diagonalMovement) {
@@ -36,14 +33,6 @@ function IDDFSFinder(opt) {
             }
         }
     }
-
-    // When diagonal movement is allowed the manhattan heuristic is not
-    //admissible. It should be octile instead
-    if (this.diagonalMovement === DiagonalMovement.Never) {
-        this.heuristic = opt.heuristic || Heuristic.manhattan;
-    } else {
-        this.heuristic = opt.heuristic || Heuristic.octile;
-    }
 }
 
 /**
@@ -54,7 +43,8 @@ function depthLimitedSearch(state,
                             target, 
                             visitedSet, 
                             grid,
-                            depth) {
+                            depth,
+                            diagonalMovement) {
                               
     if (depth === 0) {
         node.opened = true;
@@ -66,7 +56,7 @@ function depthLimitedSearch(state,
         }
     }
     
-    const nodeKey = "[x = " + node.x + ", y = " + node.y + "]";
+    var nodeKey = "[x = " + node.x + ", y = " + node.y + "]";
     
     if (visitedSet[nodeKey]) {
         return;
@@ -76,14 +66,18 @@ function depthLimitedSearch(state,
     node.closed = true;
     
     if (depth > 0) {
-        const neighbors = grid.getNeighbors(node, diagonalMovement);
+        var neighbors = grid.getNeighbors(node, diagonalMovement);
+        var l = neighbors.length;
+        var i;
         
-        for (const neighbor of neigbours) {
+        for (i = 0; i < l; ++i) {
+            var neighbor = neighbors[i];
+            
             if (state[0]) {
                 return;
             }
           
-            const neighborKey = "[x = " + node.x + ", y = " + node.y + "]";
+            var neighborKey = "[x = " + neighbor.x + ", y = " + neighbor.y + "]";
             
             if (visitedSet[neighborKey]) {
                 continue;
@@ -94,7 +88,8 @@ function depthLimitedSearch(state,
                                target,
                                visitedSet,
                                grid,
-                               depth - 1);
+                               depth - 1,
+                               diagonalMovement);
                                
 //            neighbor.closed = true;
 //            neighbor.opened = false;
@@ -110,20 +105,17 @@ function depthLimitedSearch(state,
 IDDFSFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
     var startNode = grid.getNodeAt(startX, startY),
         endNode = grid.getNodeAt(endX, endY),
-        heuristic = this.heuristic,
         diagonalMovement = this.diagonalMovement,
-        weight = this.weight,
-        abs = Math.abs, SQRT2 = Math.SQRT2,
         node, neighbors, neighbor, i, l, x, y, ng;
 
     startNode.opened = true;
     
-    const path = [];
-    const visitedSet = {};
+    var path = [];
+    var visitedSet = {};
     var previousVisitedSetSize = 0;
     // state[0] is a boolean flag indicating that a path was found.
     // state[1] is a current path candidate.
-    const state = [false, []];
+    var state = [false, []];
     
     // keep descending
     for (var depth = 0;; ++depth) {
@@ -133,13 +125,14 @@ IDDFSFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
                            endNode,
                            visitedSet,
                            grid,
-                           depth);
+                           depth,
+                           diagonalMovement);
         
         if (state[0]) {
-            return  state[1].reverse();
+            return state[1].reverse();
         }
         
-        const visitedSetSize = Object.keys(visitedSet).length;
+        var visitedSetSize = Object.keys(visitedSet).length;
         
         if (previousVisitedSetSize === visitedSetSize) {
             return [];
@@ -147,7 +140,7 @@ IDDFSFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
         
         previousVisitedSetSize = visitedSetSize;
         visitedSet = {};
-        state[1].clear();
+        state[1] = [];
     }
 };
 
