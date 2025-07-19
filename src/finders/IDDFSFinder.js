@@ -45,25 +45,32 @@ function depthLimitedSearch(state,
                             grid,
                             depth,
                             diagonalMovement) {
+    node.opened = true;
+    node.closed = false;
                               
     if (depth === 0) {
+        console.log("depth === 0");
         node.opened = true;
-        
+        node.closed = false;
+
         if (node === target) {
             state[0] = true;
             state[1].push(target);
             return;
         }
+    } else {
+        console.log("depth === ", depth);
     }
     
-    var nodeKey = "[x = " + node.x + ", y = " + node.y + "]";
+    var nodeKey = [node.x, node.y];
     
     if (visitedSet[nodeKey]) {
+        console.log("visitedSet[nodeKey] true")
         return;
     }
     
     visitedSet[nodeKey] = true;
-    node.closed = true;
+    node.opened = true;
     
     if (depth > 0) {
         var neighbors = grid.getNeighbors(node, diagonalMovement);
@@ -72,12 +79,15 @@ function depthLimitedSearch(state,
         
         for (i = 0; i < l; ++i) {
             var neighbor = neighbors[i];
+
+            neighbor.parent = node;
             
             if (state[0]) {
-                return;
+                return Util.backtrace(endNode);
             }
           
-            var neighborKey = "[x = " + neighbor.x + ", y = " + neighbor.y + "]";
+            var neighborKey = [neighbor.x, 
+                               neighbor.y];
             
             if (visitedSet[neighborKey]) {
                 continue;
@@ -91,10 +101,13 @@ function depthLimitedSearch(state,
                                depth - 1,
                                diagonalMovement);
                                
-//            neighbor.closed = true;
+//            neighbor.closed = false;    
 //            neighbor.opened = false;
         }
     }
+
+    node.closed = false;
+    node.opened = false;
 }
 
 /**
@@ -104,13 +117,12 @@ function depthLimitedSearch(state,
  */
 IDDFSFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
     var startNode = grid.getNodeAt(startX, startY),
-        endNode = grid.getNodeAt(endX, endY),
+        endNode   = grid.getNodeAt(endX, endY),
         diagonalMovement = this.diagonalMovement,
-        node, neighbors, neighbor, i, l, x, y, ng;
+        node, i;
 
     startNode.opened = true;
     
-    var path = [];
     var visitedSet = {};
     var previousVisitedSetSize = 0;
     // state[0] is a boolean flag indicating that a path was found.
@@ -129,15 +141,27 @@ IDDFSFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
                            diagonalMovement);
         
         if (state[0]) {
+            console.log("state[0] is true:", depth);
             return state[1].reverse();
         }
         
-        var visitedSetSize = Object.keys(visitedSet).length;
+        var visitedSetNodes = Object.keys(visitedSet);
+        var visitedSetSize  = visitedSetNodes.length;
         
         if (previousVisitedSetSize === visitedSetSize) {
+            console.log("previousVisitedSetSize === visitedSetSize");
             return [];
         }
         
+        var node;
+        var i = 0;
+
+        for (; i < visitedSetSize; ++i) {
+            node = visitedSetNodes[i];
+            node.closed = false;
+            node.opened = false;
+        }
+
         previousVisitedSetSize = visitedSetSize;
         visitedSet = {};
         state[1] = [];
